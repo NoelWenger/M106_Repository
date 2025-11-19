@@ -163,3 +163,58 @@ update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'Mountainbike'
 
 
 --Aufgabe 11
+--SELECT t.Bez, COUNT(*) AS Anzahl
+--FROM Bike
+--INNER JOIN Typ t ON fk_TypID = t.TypId
+--GROUP BY t.Bez
+--ORDER BY Anzahl ASC;
+
+
+--Aufgabe 12
+--SELECT m.Bez,AVG(Preis) AS Durchschnittpreis
+--FROM Bike
+--INNER JOIN Marke m ON fk_MarkeId = m.MarkeId
+--WHERE fk_TypId = 4
+--GROUP BY m.Bez
+--ORDER BY Durchschnittpreis ASC;
+
+
+--Aufgabe 13
+--SELECT m.Bez AS Marke, MIN(Preis) AS Minimum, MAX(Preis) AS Maximum, SUM(Preis) AS Gesamt
+--FROM Bike
+--INNER JOIN Marke m ON fk_MarkeId = m.MarkeId
+--GROUP BY m.Bez
+--ORDER BY m.Bez ASC;
+
+
+--Aufgabe 14
+--SELECT m.Bez AS Marke, COUNT(*) AS Anzahl
+--FROM Bike
+--INNER JOIN Marke m ON fk_MarkeId = m.MarkeId
+--WHERE fk_TypId = 2
+--GROUP BY m.Bez
+--ORDER BY Anzahl DESC;
+
+
+--Aufgabe 15
+--SELECT m.Bez AS Marke,
+--Preis AS [VP inkl.],
+--CAST(ROUND(Preis /107.7 * 100, 2) AS decimal (10,2)) AS [VP exkl.],
+--CAST(ROUND(Preis /107.7 * 7.7, 2) AS decimal (10,2)) AS MWST
+--From Bike
+--INNER JOIN Marke m ON fk_MarkeId = m.MarkeId
+
+
+--Aufgabe 16
+--SELECT CAST(SUM((Preis) /100 * 15) AS decimal (10,2)) AS Gewinn
+--FROM Bike
+-- Ich komme auf einen anderen Gewinn als in der Aufgabe??
+
+
+--Aufgabe 17
+--SELECT m.Bez AS Marke, b.Bez AS Bike, t.Bez AS Typ, Preis AS [Normal-VP], Preis -200 AS [Aktion-VP]
+--FROM Bike b
+--INNER JOIN Marke m ON fk_MarkeId = m.MarkeId
+--INNER JOIN Typ t ON fk_TypId = t.TypId
+--WHERE Preis > 1000 AND fk_TypId != 2
+--ORDER BY Marke, Bike ASC;
