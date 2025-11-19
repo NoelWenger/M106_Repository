@@ -197,3 +197,51 @@ insert into KlHatFa (fk_KlasseId, fk_FachId, fk_LehrpersonId, fk_RaumId) values
   (5, 6, 4, 7),
   (6, 6, 3, 9),
   (6, 5, 2, 1);
+
+
+
+
+--Aufgabe 1
+--SELECT k.Bez, l.Vorname, l.Nachname
+--FROM LeIstInKl
+--INNER JOIN Klasse k ON fk_KlasseId = k.KlasseId
+--INNER JOIN Lernender l ON fk_LernenderId = l.LernenderId
+--ORDER BY k.Bez, l.Nachname, l.Vorname
+
+--Aufgabe 2
+--SELECT Bez AS Klasse, l.Vorname + ' ' + l.Nachname AS KLP
+--FROM Klasse
+--INNER JOIN Lehrperson l ON fk_LehrpersonId = l.LehrpersonId
+--ORDER BY Bez
+
+
+--Aufgabe 3
+--SELECT k.Bez, COUNT(*) AS Anzahl
+--FROM LeIstInKl
+--INNER JOIN Klasse k ON fk_KlasseId = k.KlasseId
+--GROUP BY k.Bez
+--ORDER BY k.Bez
+
+
+--Aufgabe 4
+--SELECT Vorname, Nachname, COUNT(k.fk_Fachid) AS Anzahl
+--FROM Lehrperson
+--LEFT JOIN KlHatFa k ON LehrpersonId = fk_LehrpersonId
+--GROUP BY Vorname, Nachname
+--ORDER BY Anzahl DESC
+--Ich habe das nicht so ganz verstanden
+
+
+--Aufgabe 5
+--SELECT k.Bez, f.KurzBez, f.LangBez
+--FROM KlHatFa
+--INNER JOIN Klasse k ON fk_KlasseId = k.KlasseId
+--INNER JOIN Fach f ON fk_FachId = f.FachId
+--WHERE k.Bez LIKE 'INF2%'
+--ORDER BY k.Bez, f.KurzBez
+--Diese muss ich noch anschauen, ich habe es nur grob mit KI gemacht
+
+
+--Aufgabe 6
+--Aufgabe 7
+--Aufgabe 8
