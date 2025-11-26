@@ -1,0 +1,210 @@
+--*******************************************************************
+-- DQL Aufgabenserie ArtikelKauf (Version f�r T-SQL)
+--*******************************************************************
+
+---------------------------------------------------------------------
+-- Datenbank erstellen
+---------------------------------------------------------------------
+drop database if exists ArtikelKauf;
+go
+create database ArtikelKauf;
+go
+use ArtikelKauf;
+go
+
+---------------------------------------------------------------------
+-- Tabellen erstellen
+---------------------------------------------------------------------
+create table Artikel (
+  ArtikelId integer identity(1, 1) primary key,
+  Bez varchar(50) not null,
+  Preis decimal(9, 2),
+  fk_GruppeId integer,
+);
+
+create table Gruppe (
+  GruppeId integer identity(1, 1) primary key,
+  Bez varchar(50)
+);
+
+create table Kauft
+(
+  KauftId integer identity(1, 1) primary key,
+  fk_KundeId integer not null,
+  fk_ArtikelId integer not null,
+);
+
+create table Kunde (
+  KundeId integer identity(1, 1) primary key,
+  Nachname varchar(50),
+  Vorname varchar(50),
+  fk_OrtId int,
+);
+
+create table Ort (
+  OrtId integer identity(1, 1) primary key,
+  PLZ varchar(10),
+  Bez varchar(50),
+  Kanton varchar(2)
+);
+
+---------------------------------------------------------------------
+-- Foreign Key Beziehungen erstellen
+---------------------------------------------------------------------
+alter table Artikel add foreign key (fk_GruppeId)   references Gruppe(GruppeId)
+alter table Kauft   add foreign key (fk_KundeId)    references Kunde(KundeId)
+alter table Kauft   add foreign key (fk_ArtikelId)  references Artikel(ArtikelId)
+alter table Kunde   add foreign key (fk_OrtId)      references Ort(OrtId)
+
+---------------------------------------------------------------------
+-- Daten einf�gen
+---------------------------------------------------------------------
+insert into Ort (PLZ, Bez, Kanton) values
+('6020', 'Emmenbr�cke',   'LU'),
+('6000', 'Luzern',        'LU'),
+('6204', 'Sempach-Stadt', 'LU'),
+('6023', 'Rothenburg',    'LU'),
+('6210', 'Sursee',        'LU'),
+('3555', 'Trubschachen',  'BE'),
+('3600', 'Thun',          'BE'),
+('6370', 'Stans',         'NW'),
+('6060', 'Sarnen',        'OW'),
+('6074', 'Giswil',        'OW'),
+('6460', 'Altdorf',       'UR'),
+('6343', 'Rotkreuz',      'ZG');
+
+insert into Kunde (Nachname, Vorname, fk_OrtId) values
+('B�hler',       'Rita',       (select OrtId from Ort where PLZ='6210')),
+('Dobler',       'Max',        (select OrtId from Ort where PLZ='6460')),
+('Heggli',       'Carla',      (select OrtId from Ort where PLZ='6060')),
+('Inderbitzin',  'Reto',       (select OrtId from Ort where PLZ='6210')),
+('Jacomet',      'Mario',      (select OrtId from Ort where PLZ='3600')),
+('Lingg',        'Hans',       (select OrtId from Ort where PLZ='6020')),
+('Meier',        'Roland',     (select OrtId from Ort where PLZ='6023')),
+('Renggli',      'Jana',       (select OrtId from Ort where PLZ='6060')),
+('Schiffmann',   'David',      (select OrtId from Ort where PLZ='6020')),
+('Schurter',     'Armin',      (select OrtId from Ort where PLZ='6370')),
+('Schnider',     'Benedikt',   (select OrtId from Ort where PLZ='3555')),
+('St�ckli',      'Franziska',  null);
+
+insert into Gruppe (Bez) values
+('Werkzeug'),
+('Lebensmittel'),
+('M�bel'),
+('Ger�te'),
+('Kleider');
+
+insert into Artikel (Bez, Preis, fk_GruppeId) values
+('Multischleifer',    65.00,  (select GruppeId from Gruppe where Bez='Werkzeug')),
+('Akku-Bohrer',      179.00,  (select GruppeId from Gruppe where Bez='Werkzeug')),
+('Multis�ge',         49.00,  (select GruppeId from Gruppe where Bez='Werkzeug')),
+('Akku-Hobel',        89.00,  (select GruppeId from Gruppe where Bez='Werkzeug')),
+('Hammer',             5.00,  (select GruppeId from Gruppe where Bez='Werkzeug')),
+('Raclette Ofen',     20.00,  (select GruppeId from Gruppe where Bez='Ger�te')),
+('Outdoor Grill',    899.00,  (select GruppeId from Gruppe where Bez='Ger�te')),
+('Relaxliege',       119.00,  (select GruppeId from Gruppe where Bez='M�bel')),
+('Kommode',          245.00,  (select GruppeId from Gruppe where Bez='M�bel')),
+('Tisch',            540.00,  (select GruppeId from Gruppe where Bez='M�bel')),
+('Schrank',         1450.00,  (select GruppeId from Gruppe where Bez='M�bel')),
+('Mineralwasser',      1.50,  (select GruppeId from Gruppe where Bez='Lebensmittel')),
+('Lager Bier',         1.90,  (select GruppeId from Gruppe where Bez='Lebensmittel')),
+('Brot',               3.20,  (select GruppeId from Gruppe where Bez='Lebensmittel')),
+('Duschgel',           4.45,  null);
+
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Lingg'),      (select ArtikelId from Artikel where Bez = 'Akku-Bohrer'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'B�hler'),     (select ArtikelId from Artikel where Bez = 'Outdoor Grill'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Renggli'),    (select ArtikelId from Artikel where Bez = 'Mineralwasser'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Schurter'),   (select ArtikelId from Artikel where Bez = 'Akku-Bohrer'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Lingg'),      (select ArtikelId from Artikel where Bez = 'Akku-Hobel'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'St�ckli'),    (select ArtikelId from Artikel where Bez = 'Kommode'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Jacomet'),    (select ArtikelId from Artikel where Bez = 'Hammer'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Jacomet'),    (select ArtikelId from Artikel where Bez = 'Multis�ge'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Heggli'),     (select ArtikelId from Artikel where Bez = 'Brot'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'St�ckli'),    (select ArtikelId from Artikel where Bez = 'Mineralwasser'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Heggli'),     (select ArtikelId from Artikel where Bez = 'Mineralwasser'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Schiffmann'), (select ArtikelId from Artikel where Bez = 'Mineralwasser'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'B�hler'),     (select ArtikelId from Artikel where Bez = 'Hammer'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Dobler'),     (select ArtikelId from Artikel where Bez = 'Relaxliege'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Heggli'),     (select ArtikelId from Artikel where Bez = 'Tisch'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Meier'),      (select ArtikelId from Artikel where Bez = 'Lager Bier'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Lingg'),      (select ArtikelId from Artikel where Bez = 'Lager Bier'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Schnider'),   (select ArtikelId from Artikel where Bez = 'Multis�ge'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Schnider'),   (select ArtikelId from Artikel where Bez = 'Akku-Bohrer'));
+insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'B�hler'),     (select ArtikelId from Artikel where Bez = 'Relaxliege'));
+
+
+
+
+
+
+--Aufgabe 1
+--SELECT Vorname, Nachname, o.Bez
+--FROM Kunde
+--INNER JOIN Ort o ON fk_OrtId = o.OrtId
+--ORDER BY Nachname, Vorname
+
+
+--Aufgabe 2
+--SELECT a.Bez AS Artikel, k.Vorname + ' ' + k.Nachname AS Kunde
+--FROM Kauft
+--INNER JOIN Artikel a ON fk_ArtikelId = a.ArtikelId
+--INNER JOIN Kunde k ON fk_KundeId = k.KundeId
+--ORDER BY a.Bez, k.Nachname, k.Vorname
+
+
+--Aufgabe 3
+--SELECT k. Vorname, k.Nachname, SUM(a.Preis) AS Umsatz
+--FROM Kauft
+--INNER JOIN Kunde k ON fk_KundeId = k.KundeId
+--INNER JOIN Artikel a ON fk_ArtikelId = a.ArtikelId
+--WHERE k.Vorname = 'Carla' AND k.Nachname = 'Heggli'
+--GROUP BY k.Vorname, k.Nachname
+
+
+--Aufgabe 4
+--SELECT k.Vorname, k.Nachname, COUNT(a.ArtikelId) AS Anzahl
+--FROM Kauft
+--INNER JOIN Kunde k ON fk_KundeId = k.KundeId
+--INNER JOIN Artikel a ON fk_ArtikelId = a.ArtikelId
+--GROUP BY k.Vorname, k.Nachname
+--ORDER BY COUNT(a.ArtikelId) DESC, k.Nachname, k.Vorname
+
+
+--Aufgabe 5
+--SELECT g.Bez AS Artikelgruppe, COUNT(fk_GruppeId) AS [Anzahl Artikel]
+--FROM Artikel
+--INNER JOIN Gruppe g ON fk_GruppeId = g.GruppeId
+--GROUP BY g.Bez
+
+--Aufgabe 6
+--SELECT g.Bez AS [Gruppe ohne Artikel]
+--FROM Gruppe g
+--LEFT JOIN Artikel a ON g.GruppeId = a.fk_GruppeId
+--WHERE a.ArtikelId IS NULL
+
+
+--Aufgabe 7
+--SELECT Bez AS Artikel, Preis
+--FROM Artikel
+--LEFT JOIN Kauft k ON ArtikelId = k.fk_ArtikelId
+--WHERE k.fk_KundeId IS NUll
+--ORDER BY Preis DESC
+
+
+--Aufgabe 8
+--SELECT a.Bez AS Artikel, Preis
+--FROM Artikel a
+--LEFT JOIN Gruppe ON fk_GruppeId = GruppeId
+--WHERE fk_GruppeId IS NULL
+
+
+--Aufgabe 9
+--SELECT Vorname + ' ' + Nachname AS Kunde, a.Bez  AS Artikel, a.Preis
+--FROM Kunde
+--INNER JOIN Kauft k ON KundeId = k.fk_KundeId
+--INNER JOIN Artikel a ON k.fk_ArtikelId = a.ArtikelId
+--WHERE a.Bez = 'Mineralwasser'
+--ORDER BY Nachname, Vorname
+
+
+--Aufgabe 10
