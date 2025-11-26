@@ -1,210 +1,219 @@
---*******************************************************************
--- DQL Aufgabenserie ArtikelKauf (Version f�r T-SQL)
---*******************************************************************
+--********************************************************************
+-- Computershop: Skript zum Erstellen der Datenbank mit allen Tabellen
+--********************************************************************
 
----------------------------------------------------------------------
+----------------------------------------------------------------------
 -- Datenbank erstellen
----------------------------------------------------------------------
-drop database if exists ArtikelKauf;
+----------------------------------------------------------------------
+use master
 go
-create database ArtikelKauf;
+drop database if exists ComputerShop
 go
-use ArtikelKauf;
+create database ComputerShop
+go
+use ComputerShop
 go
 
----------------------------------------------------------------------
--- Tabellen erstellen
----------------------------------------------------------------------
+----------------------------------------------------------------------
+-- Tabellen erstellen (alphabetisch, ohne Beziehungen)
+----------------------------------------------------------------------
 create table Artikel (
-  ArtikelId integer identity(1, 1) primary key,
-  Bez varchar(50) not null,
-  Preis decimal(9, 2),
-  fk_GruppeId integer,
+  ArtikelId integer identity,
+  Bez varchar(50),
+  Preis decimal(9,2),
+  fk_HerstellerId integer,
+  fk_LieferantId integer,
+  primary key(ArtikelId)
 );
 
-create table Gruppe (
-  GruppeId integer identity(1, 1) primary key,
-  Bez varchar(50)
+create table BestehtAus (
+  BestehtAusId integer identity,
+  Anzahl float,
+  fk_ArtikelId integer,
+  fk_BestellungId integer,
+  primary key(BestehtAusId)
 );
 
-create table Kauft
-(
-  KauftId integer identity(1, 1) primary key,
-  fk_KundeId integer not null,
-  fk_ArtikelId integer not null,
+create table Bestellung (
+  BestellungId integer identity,
+  Datum date,
+  fk_KundeId integer,
+  primary key(BestellungId)
+);
+
+create table Hersteller (
+  HerstellerId integer identity,
+  Name varchar(40),
+  primary key(HerstellerId)
 );
 
 create table Kunde (
-  KundeId integer identity(1, 1) primary key,
-  Nachname varchar(50),
-  Vorname varchar(50),
-  fk_OrtId int,
+  KundeId integer identity,
+  Nachname varchar(40),
+  Vorname varchar(40),
+  Strasse varchar(40),
+  Hausnummer varchar(5),
+  fk_OrtId integer,
+  primary key(KundeId)
+);
+
+create table Lieferant (
+  LieferantId integer identity,
+  Name varchar(40),
+  primary key(LieferantId)
 );
 
 create table Ort (
-  OrtId integer identity(1, 1) primary key,
-  PLZ varchar(10),
-  Bez varchar(50),
-  Kanton varchar(2)
+  OrtId integer identity,
+  Bez varchar(40),
+  Plz varchar(10),
+  primary key(OrtId)
 );
+go -- Wichtig: sonst sind die Tabellen nicht definitiv erstellt
 
----------------------------------------------------------------------
--- Foreign Key Beziehungen erstellen
----------------------------------------------------------------------
-alter table Artikel add foreign key (fk_GruppeId)   references Gruppe(GruppeId)
-alter table Kauft   add foreign key (fk_KundeId)    references Kunde(KundeId)
-alter table Kauft   add foreign key (fk_ArtikelId)  references Artikel(ArtikelId)
-alter table Kunde   add foreign key (fk_OrtId)      references Ort(OrtId)
+----------------------------------------------------------------------
+-- Beziehungen erstellen
+----------------------------------------------------------------------
+alter table Artikel add
+  foreign key(fk_HerstellerId) references Hersteller(HerstellerId),
+  foreign key(fk_LieferantId) references Lieferant(LieferantId);
 
----------------------------------------------------------------------
--- Daten einf�gen
----------------------------------------------------------------------
-insert into Ort (PLZ, Bez, Kanton) values
-('6020', 'Emmenbr�cke',   'LU'),
-('6000', 'Luzern',        'LU'),
-('6204', 'Sempach-Stadt', 'LU'),
-('6023', 'Rothenburg',    'LU'),
-('6210', 'Sursee',        'LU'),
-('3555', 'Trubschachen',  'BE'),
-('3600', 'Thun',          'BE'),
-('6370', 'Stans',         'NW'),
-('6060', 'Sarnen',        'OW'),
-('6074', 'Giswil',        'OW'),
-('6460', 'Altdorf',       'UR'),
-('6343', 'Rotkreuz',      'ZG');
+alter table BestehtAus add
+  foreign key(fk_ArtikelId) references Artikel(ArtikelId),
+  foreign key(fk_BestellungId) references Bestellung(BestellungId);
 
-insert into Kunde (Nachname, Vorname, fk_OrtId) values
-('B�hler',       'Rita',       (select OrtId from Ort where PLZ='6210')),
-('Dobler',       'Max',        (select OrtId from Ort where PLZ='6460')),
-('Heggli',       'Carla',      (select OrtId from Ort where PLZ='6060')),
-('Inderbitzin',  'Reto',       (select OrtId from Ort where PLZ='6210')),
-('Jacomet',      'Mario',      (select OrtId from Ort where PLZ='3600')),
-('Lingg',        'Hans',       (select OrtId from Ort where PLZ='6020')),
-('Meier',        'Roland',     (select OrtId from Ort where PLZ='6023')),
-('Renggli',      'Jana',       (select OrtId from Ort where PLZ='6060')),
-('Schiffmann',   'David',      (select OrtId from Ort where PLZ='6020')),
-('Schurter',     'Armin',      (select OrtId from Ort where PLZ='6370')),
-('Schnider',     'Benedikt',   (select OrtId from Ort where PLZ='3555')),
-('St�ckli',      'Franziska',  null);
+alter table Bestellung add
+  foreign key(fk_KundeId) references Kunde(KundeId);
 
-insert into Gruppe (Bez) values
-('Werkzeug'),
-('Lebensmittel'),
-('M�bel'),
-('Ger�te'),
-('Kleider');
-
-insert into Artikel (Bez, Preis, fk_GruppeId) values
-('Multischleifer',    65.00,  (select GruppeId from Gruppe where Bez='Werkzeug')),
-('Akku-Bohrer',      179.00,  (select GruppeId from Gruppe where Bez='Werkzeug')),
-('Multis�ge',         49.00,  (select GruppeId from Gruppe where Bez='Werkzeug')),
-('Akku-Hobel',        89.00,  (select GruppeId from Gruppe where Bez='Werkzeug')),
-('Hammer',             5.00,  (select GruppeId from Gruppe where Bez='Werkzeug')),
-('Raclette Ofen',     20.00,  (select GruppeId from Gruppe where Bez='Ger�te')),
-('Outdoor Grill',    899.00,  (select GruppeId from Gruppe where Bez='Ger�te')),
-('Relaxliege',       119.00,  (select GruppeId from Gruppe where Bez='M�bel')),
-('Kommode',          245.00,  (select GruppeId from Gruppe where Bez='M�bel')),
-('Tisch',            540.00,  (select GruppeId from Gruppe where Bez='M�bel')),
-('Schrank',         1450.00,  (select GruppeId from Gruppe where Bez='M�bel')),
-('Mineralwasser',      1.50,  (select GruppeId from Gruppe where Bez='Lebensmittel')),
-('Lager Bier',         1.90,  (select GruppeId from Gruppe where Bez='Lebensmittel')),
-('Brot',               3.20,  (select GruppeId from Gruppe where Bez='Lebensmittel')),
-('Duschgel',           4.45,  null);
-
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Lingg'),      (select ArtikelId from Artikel where Bez = 'Akku-Bohrer'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'B�hler'),     (select ArtikelId from Artikel where Bez = 'Outdoor Grill'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Renggli'),    (select ArtikelId from Artikel where Bez = 'Mineralwasser'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Schurter'),   (select ArtikelId from Artikel where Bez = 'Akku-Bohrer'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Lingg'),      (select ArtikelId from Artikel where Bez = 'Akku-Hobel'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'St�ckli'),    (select ArtikelId from Artikel where Bez = 'Kommode'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Jacomet'),    (select ArtikelId from Artikel where Bez = 'Hammer'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Jacomet'),    (select ArtikelId from Artikel where Bez = 'Multis�ge'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Heggli'),     (select ArtikelId from Artikel where Bez = 'Brot'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'St�ckli'),    (select ArtikelId from Artikel where Bez = 'Mineralwasser'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Heggli'),     (select ArtikelId from Artikel where Bez = 'Mineralwasser'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Schiffmann'), (select ArtikelId from Artikel where Bez = 'Mineralwasser'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'B�hler'),     (select ArtikelId from Artikel where Bez = 'Hammer'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Dobler'),     (select ArtikelId from Artikel where Bez = 'Relaxliege'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Heggli'),     (select ArtikelId from Artikel where Bez = 'Tisch'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Meier'),      (select ArtikelId from Artikel where Bez = 'Lager Bier'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Lingg'),      (select ArtikelId from Artikel where Bez = 'Lager Bier'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Schnider'),   (select ArtikelId from Artikel where Bez = 'Multis�ge'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'Schnider'),   (select ArtikelId from Artikel where Bez = 'Akku-Bohrer'));
-insert into Kauft (fk_KundeId, fk_ArtikelId) values((select KundeId from Kunde where Nachname = 'B�hler'),     (select ArtikelId from Artikel where Bez = 'Relaxliege'));
+alter table Kunde add
+  foreign key(fk_OrtId) references Ort(OrtId);
+go
 
 
 
+--********************************************************************
+-- Computershop: Skript zum Einfügen der Daten
+--********************************************************************
 
+----------------------------------------------------------------------
+-- Auf Datenbank ComputerShop positionieren
+----------------------------------------------------------------------
+use ComputerShop
+go
 
+----------------------------------------------------------------------
+-- Tabelle Ort abfüllen
+----------------------------------------------------------------------
+insert into Ort
+  (Bez,           Plz) values
+  ('Sursee',      '6210'),
+  ('Luzern',      '6000'),
+  ('Horw',        '6048'),
+  ('Kriens',      '6010'),
+  ('Emmen',       '6032'),
+  ('Willisau',    '6130'),
+  ('Sempach',     '6204'),
+  ('Entlebuch',   '6162'),
+  ('Rothenburg',  '6023'),
+  ('Meggen',      '6045')
+go
 
---Aufgabe 1
---SELECT Vorname, Nachname, o.Bez
---FROM Kunde
---INNER JOIN Ort o ON fk_OrtId = o.OrtId
---ORDER BY Nachname, Vorname
+----------------------------------------------------------------------
+-- Tabelle Lieferant abfüllen
+----------------------------------------------------------------------
+insert into Lieferant
+  ([Name]) values
+  ('Brack'),
+  ('Digitec'),
+  ('Also'),
+  ('Steg'),
+  ('TechData'),
+  ('Ingram Micro'),
+  ('Littlebit'),
+  ('Bechtle'),
+  ('Alltron'),
+  ('microspot');
+go
 
+----------------------------------------------------------------------
+-- Tabelle Hersteller abfüllen
+----------------------------------------------------------------------
+insert into Hersteller
+  ([Name]) values
+  ('HP'),
+  ('Asus'),
+  ('Acer'),
+  ('Dell'),
+  ('Lenovo'),
+  ('Brother'),
+  ('Canon'),
+  ('Epson'),
+  ('Logitech'),
+  ('Samsung');
+go
 
---Aufgabe 2
---SELECT a.Bez AS Artikel, k.Vorname + ' ' + k.Nachname AS Kunde
---FROM Kauft
---INNER JOIN Artikel a ON fk_ArtikelId = a.ArtikelId
---INNER JOIN Kunde k ON fk_KundeId = k.KundeId
---ORDER BY a.Bez, k.Nachname, k.Vorname
+----------------------------------------------------------------------
+-- Tabelle Artikel abfüllen
+----------------------------------------------------------------------
+insert into Artikel
+  (Bez,                         Preis,    fk_HerstellerId,                                                fk_LieferantId) values
+  ('ProBook 650',               1449.00,  (select HerstellerId from Hersteller where Name = 'HP'),        (select LieferantId from Lieferant where Name = 'Brack')),
+  ('MFC-L3770CDW Drucker',       529.00,  (select HerstellerId from Hersteller where Name = 'Brother'),   (select LieferantId from Lieferant where Name = 'Digitec')),
+  ('ThinkPad T15',              1590.00,  (select HerstellerId from Hersteller where Name = 'Lenovo'),    (select LieferantId from Lieferant where Name = 'Steg')),
+  ('LaserJet Pro MFP M227fdw',   359.00,  (select HerstellerId from Hersteller where Name = 'HP'),        (select LieferantId from Lieferant where Name = 'Digitec')),
+  ('ZenBook Flip 15',           1499.00,  (select HerstellerId from Hersteller where Name = 'Asus'),      (select LieferantId from Lieferant where Name = 'Steg')),
+  ('Asus TUF 27 Monitor',        530.00,  (select HerstellerId from Hersteller where Name = 'Asus'),      (select LieferantId from Lieferant where Name = 'Steg')),
+  ('Perfection V850 Scanner',    949.00,  (select HerstellerId from Hersteller where Name = 'Epson'),     (select LieferantId from Lieferant where Name = 'Also')),
+  ('MX Illuminated Keyboard',    105.00,  (select HerstellerId from Hersteller where Name = 'Logitech'),  (select LieferantId from Lieferant where Name = 'Littlebit')),
+  ('MX Anywhere 3 Maus',          65.00,  (select HerstellerId from Hersteller where Name = 'Logitech'),  (select LieferantId from Lieferant where Name = 'TechData')),
+  ('Galaxy S21 Ultra',          1230.00,  (select HerstellerId from Hersteller where Name = 'Samsung'),   (select LieferantId from Lieferant where Name = 'Brack'));
+go
 
+----------------------------------------------------------------------
+-- Tabelle Kunde abfüllen
+----------------------------------------------------------------------
+insert into Kunde
+  (Nachname,  Vorname,    Strasse,              Hausnummer, fk_OrtId) values
+  ('Bucher',  'Hans',     'Kantonsstrasse',     '51',       (select OrtId from Ort where Bez = 'Horw')),
+  ('Fuchs',   'Lea',      'Br�nigstrasse',      '12',       (select OrtId from Ort where Bez = 'Emmen')),
+  ('Koch',    'Samuel',   'Luzernerstrasse',    '7',        (select OrtId from Ort where Bez = 'Kriens')),
+  ('Roth',    'Monika',   'Bahnhofstrasse',     '13',       (select OrtId from Ort where Bez = 'Emmen')),
+  ('Wild',    'Gerhard',  'Centralstarsse',     '37',       (select OrtId from Ort where Bez = 'Sursee')),
+  ('Graf',    'Robert',   'Ettiswilerstrasse',  '8',        (select OrtId from Ort where Bez = 'Willisau')),
+  ('Alt',     'Sonja',    'Flecken',            '15',       (select OrtId from Ort where Bez = 'Rothenburg')),
+  ('Moser',   'Nadja',    'Badstrasse',         '26',       (select OrtId from Ort where Bez = 'Sursee')),
+  ('Peier',   'Louis',    'Hirschengraben',     '52',       (select OrtId from Ort where Bez = 'Luzern')),
+  ('Hofer',   'Rita',     'Z�richstrasse',      '9',        (select OrtId from Ort where Bez = 'Luzern'));
+go
 
---Aufgabe 3
---SELECT k. Vorname, k.Nachname, SUM(a.Preis) AS Umsatz
---FROM Kauft
---INNER JOIN Kunde k ON fk_KundeId = k.KundeId
---INNER JOIN Artikel a ON fk_ArtikelId = a.ArtikelId
---WHERE k.Vorname = 'Carla' AND k.Nachname = 'Heggli'
---GROUP BY k.Vorname, k.Nachname
+----------------------------------------------------------------------
+-- Tabelle Bestellung abfüllen
+----------------------------------------------------------------------
+insert into Bestellung
+  (Datum,         fk_KundeId) values
+  ('2020-12-15',  (select KundeId from Kunde where Nachname = 'Fuchs')),
+  ('2020-12-31',  (select KundeId from Kunde where Nachname = 'Wild')),
+  ('2021-01-02',  (select KundeId from Kunde where Nachname = 'Graf')),
+  ('2021-01-25',  (select KundeId from Kunde where Nachname = 'Hofer')),
+  ('2021-02-03',  (select KundeId from Kunde where Nachname = 'Koch')),
+  ('2021-02-11',  (select KundeId from Kunde where Nachname = 'Fuchs')),
+  ('2021-02-15',  (select KundeId from Kunde where Nachname = 'Wild'));
+go
 
-
---Aufgabe 4
---SELECT k.Vorname, k.Nachname, COUNT(a.ArtikelId) AS Anzahl
---FROM Kauft
---INNER JOIN Kunde k ON fk_KundeId = k.KundeId
---INNER JOIN Artikel a ON fk_ArtikelId = a.ArtikelId
---GROUP BY k.Vorname, k.Nachname
---ORDER BY COUNT(a.ArtikelId) DESC, k.Nachname, k.Vorname
-
-
---Aufgabe 5
---SELECT g.Bez AS Artikelgruppe, COUNT(fk_GruppeId) AS [Anzahl Artikel]
---FROM Artikel
---INNER JOIN Gruppe g ON fk_GruppeId = g.GruppeId
---GROUP BY g.Bez
-
---Aufgabe 6
---SELECT g.Bez AS [Gruppe ohne Artikel]
---FROM Gruppe g
---LEFT JOIN Artikel a ON g.GruppeId = a.fk_GruppeId
---WHERE a.ArtikelId IS NULL
-
-
---Aufgabe 7
---SELECT Bez AS Artikel, Preis
---FROM Artikel
---LEFT JOIN Kauft k ON ArtikelId = k.fk_ArtikelId
---WHERE k.fk_KundeId IS NUll
---ORDER BY Preis DESC
-
-
---Aufgabe 8
---SELECT a.Bez AS Artikel, Preis
---FROM Artikel a
---LEFT JOIN Gruppe ON fk_GruppeId = GruppeId
---WHERE fk_GruppeId IS NULL
-
-
---Aufgabe 9
---SELECT Vorname + ' ' + Nachname AS Kunde, a.Bez  AS Artikel, a.Preis
---FROM Kunde
---INNER JOIN Kauft k ON KundeId = k.fk_KundeId
---INNER JOIN Artikel a ON k.fk_ArtikelId = a.ArtikelId
---WHERE a.Bez = 'Mineralwasser'
---ORDER BY Nachname, Vorname
-
-
---Aufgabe 10
+----------------------------------------------------------------------
+-- Tabelle BestehtAus abfüllen
+----------------------------------------------------------------------
+insert into BestehtAus
+  (Anzahl,  fk_ArtikelId,                                                           fk_BestellungId) values
+  (1,       (select ArtikelId from Artikel where Bez = 'ProBook 650'),              (select BestellungId from Bestellung where Datum = '2020-12-15')),
+  (2,       (select ArtikelId from Artikel where Bez = 'MX Anywhere 3 Maus'),       (select BestellungId from Bestellung where Datum = '2020-12-15')),
+  (1,       (select ArtikelId from Artikel where Bez = 'MX Illuminated Keyboard'),  (select BestellungId from Bestellung where Datum = '2020-12-15')),
+  (1,       (select ArtikelId from Artikel where Bez = 'Asus TUF 27 Monitor'),      (select BestellungId from Bestellung where Datum = '2020-12-31')),
+  (1,       (select ArtikelId from Artikel where Bez = 'ZenBook Flip 1'),           (select BestellungId from Bestellung where Datum = '2021-01-02')),
+  (3,       (select ArtikelId from Artikel where Bez = 'LaserJet Pro MFP M227fdw'), (select BestellungId from Bestellung where Datum = '2021-01-25')),
+  (1,       (select ArtikelId from Artikel where Bez = 'Galaxy S21 Ultra'),         (select BestellungId from Bestellung where Datum = '2021-02-03')),
+  (2,       (select ArtikelId from Artikel where Bez = 'MFC-L3770CDW Drucker'),     (select BestellungId from Bestellung where Datum = '2021-02-11')),
+  (2,       (select ArtikelId from Artikel where Bez = 'Asus TUF 27 Monitor'),      (select BestellungId from Bestellung where Datum = '2021-02-11')),
+  (1,       (select ArtikelId from Artikel where Bez = 'MX Anywhere 3 Maus'),       (select BestellungId from Bestellung where Datum = '2020-02-11')),
+  (1,       (select ArtikelId from Artikel where Bez = 'Galaxy S21 Ultra'),         (select BestellungId from Bestellung where Datum = '2021-02-15'));
+go
