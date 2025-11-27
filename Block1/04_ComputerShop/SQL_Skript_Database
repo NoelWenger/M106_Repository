@@ -217,3 +217,22 @@ insert into BestehtAus
   (1,       (select ArtikelId from Artikel where Bez = 'MX Anywhere 3 Maus'),       (select BestellungId from Bestellung where Datum = '2020-02-11')),
   (1,       (select ArtikelId from Artikel where Bez = 'Galaxy S21 Ultra'),         (select BestellungId from Bestellung where Datum = '2021-02-15'));
 go
+
+
+
+
+--Aufgabe 4
+SELECT k.Vorname, k.Nachname, FORMAT(CAST(SUM(a.Preis * ba.Anzahl) AS DECIMAL(10,2)), 'N2', 'de-CH') AS Umsatz
+FROM Kunde k
+JOIN Bestellung b ON b.fk_KundeId = k.KundeId
+JOIN BestehtAus ba ON ba.fk_BestellungId = b.BestellungId
+JOIN Artikel a ON a.ArtikelId = ba.fk_ArtikelId
+GROUP BY k.Vorname, k.Nachname
+ORDER BY SUM(a.Preis * ba.Anzahl) DESC;
+
+--Aufgabe 5
+SELECT COALESCE(SUM(CASE WHEN ba.fk_BestellungId IS NOT NULL THEN 1 ELSE 0 END), 0) AS Anzahl, a.Bez AS Artikel
+FROM Artikel a
+LEFT JOIN BestehtAus ba ON ba.fk_ArtikelId = a.ArtikelId
+GROUP BY a.Bez
+ORDER BY Anzahl DESC, a.Bez;
