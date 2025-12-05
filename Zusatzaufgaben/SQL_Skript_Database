@@ -1,220 +1,100 @@
---*********************************************************
--- Bikelager
---*********************************************************
+-- Stelle sicher, dass du in AdventureWorksLT arbeitest
+USE AdventureWorksLT2022;
+GO
 
------------------------------------------------------------
--- Datenbank erstellen
------------------------------------------------------------
-use master
-go
-drop database if exists BikeLager;
-go
-create database BikeLager;
-go
-use BikeLager;
-go
+-- 1) Eigenes Schema für die Übung
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'Xmas')
+    EXEC('CREATE SCHEMA Xmas');
+GO
 
------------------------------------------------------------
--- Tabllen erstellen
------------------------------------------------------------
-create table Typ(
-  TypId integer identity,
-  Bez varchar(20),
-  primary key (TypId)
+-- 2) Konfiguration für Weihnachtsrabatte (Fixwerte)
+DROP TABLE IF EXISTS Xmas.DiscountConfig;
+GO
+
+CREATE TABLE Xmas.DiscountConfig
+(
+    ConfigID int IDENTITY(1,1) PRIMARY KEY,
+    MinOrderValue money NOT NULL,        -- ab welchem Bestellwert ein Rabatt greift
+    MinItems int NOT NULL,               -- ab wie vielen Positionen ein Rabatt greift
+    BaseDiscount decimal(5,4) NOT NULL,  -- Grundrabatt (z.B. 0.0500 = 5%)
+    MaxDiscount  decimal(5,4) NOT NULL   -- Deckelung
 );
 
-create table Marke (
-  MarkeId integer identity,
-  Bez varchar(20),
-  primary key (MarkeId)
+INSERT INTO Xmas.DiscountConfig (MinOrderValue, MinItems, BaseDiscount, MaxDiscount)
+VALUES
+(   0.00, 0, 0.0000, 0.2500); -- Default: max. 25% Rabatt
+GO
+
+
+
+
+
+
+--1--
+DROP FUNCTION IF EXISTS Xmas.fn_IsXmasSeason;
+GO
+
+CREATE FUNCTION Xmas.fn_IsXmasSeason (@d DATE)
+RETURNS BIT
+AS
+BEGIN
+	RETURN CASE 
+		WHEN MONTH(@d) = 12 AND DAY(@d) <= 24 THEN 1
+	ELSE 0
+END;
+END;
+GO
+
+-- Test 1: 1. Dezember => Saison
+SELECT Xmas.fn_IsXmasSeason('2019-12-01') AS Expected1;
+-- Erwartet: 1
+
+-- Test 2: 24. Dezember => Saison
+SELECT Xmas.fn_IsXmasSeason('2019-12-24') AS Expected1;
+-- Erwartet: 1
+
+-- Test 3: 25. Dezember => keine Saison
+SELECT Xmas.fn_IsXmasSeason('2019-12-25') AS Expected0;
+-- Erwartet: 0
+
+-- Test 4: 30. November => keine Saison
+SELECT Xmas.fn_IsXmasSeason('2019-11-30') AS Expected0;
+-- Erwartet: 0
+
+
+
+
+
+--2--
+DROP FUNCTION IF EXISTS Xmas.fn_OrderSummary;
+GO
+
+CREATE FUNCTION Xmas.fn_OrderSummary (@SalesOrderID INT)
+RETURNS TABLE
+AS
+RETURN
+(
+    SELECT h.SalesOrderID, h.OrderDate, COUNT(d.SalesOrderDetailID) AS ItemCount, SUM(d.LineTotal) AS OrderValue, h.CustomerID
+    FROM SalesLT.SalesOrderHeader h
+    JOIN SalesLT.SalesOrderDetail d ON h.SalesOrderID = d.SalesOrderID
+    WHERE h.SalesOrderID = @SalesOrderID
+    GROUP BY h.SalesOrderID, h.OrderDate, h.CustomerID
 );
-
-create table Bike (
-  BikeId integer identity,
-  Bez varchar(20),
-  Preis decimal(9, 2),
-  fk_TypId integer,
-  fk_MarkeId integer,
-  primary key (BikeId),
-  foreign key (fk_TypId) references Typ (TypId),
-  foreign key (fk_MarkeId) references Marke (MarkeId)
-);
-go
-
------------------------------------------------------------
--- Inhalte einfügen
------------------------------------------------------------
-insert into Typ (Bez) values
-  ('Citybike'),
-  ('E-Bike'),
-  ('Kinderbike'),
-  ('Mountainbike'),
-  ('Rennvelo');
-
-insert into Marke (Bez) values
-  ('Scott'),
-  ('Trek'),
-  ('Flyer'),
-  ('Wheeler'),
-  ('Cube');
-
-insert into Bike (Bez, Preis) values
-  ('Travel SL', 1399),     /* Cube, Citybike */
-  ('Upstreet 5', 3899),    /* Flyer, E-Bike */
-  ('Uproc 3', 4599),       /* Flyer, E-Bike */
-  ('C 5.1', 3199),         /* Flyer, E-Bike */
-  ('Powerfly FS 7', 5399), /* Trek, E-Bike */
-  ('Fuel EX 9.8', 3999),   /* Trek, Mountainbike */
-  ('Scale 24', 499),       /* Scott, Kinderbike */
-  ('Scale 950', 1199),     /* Scott, Mountainbike */
-  ('XT EQT 24', 499),      /* Wheeler, Citybike */
-  ('Protron XT-10', 999);  /* Wheeler, Mountainbike */
-go
-
------------------------------------------------------------
--- Typ und Marke pro Bike setzen
------------------------------------------------------------
-update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'Citybike'),      fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Cube'   )  where Bike.Bez = 'Travel SL';
-update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'E-Bike'),        fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Flyer'  )  where Bike.Bez = 'Upstreet 5';
-update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'E-Bike'),        fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Flyer'  )  where Bike.Bez = 'Uproc 3';
-update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'E-Bike'),        fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Flyer'  )  where Bike.Bez = 'C 5.1';
-update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'E-Bike'),        fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Trek'   )  where Bike.Bez = 'Powerfly FS 7';
-update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'Mountainbike'),  fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Trek'   )  where Bike.Bez = 'Fuel EX 9.8';
-update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'Kinderbike'),    fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Scott'  )  where Bike.Bez = 'Scale 24';
-update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'Mountainbike'),  fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Scott'  )  where Bike.Bez = 'Scale 950';
-update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'Citybike'),      fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Wheeler')  where Bike.Bez = 'XT EQT 24';
-update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'Mountainbike'),  fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Wheeler')  where Bike.Bez = 'Protron XT-10';
+GO
 
 
---Aufgabe 1
---SELECT MarkeId, Bez
---FROM Marke;
+-- Suche dir eine existierende Bestellung
+SELECT TOP 1 SalesOrderID FROM SalesLT.SalesOrderHeader ORDER BY SalesOrderID;
+GO
 
---SELECT BikeId, Bez, Preis, fk_TypId, fk_MarkeId
---FROM Bike;
+-- Test: Summary muss 1 Zeile liefern und Werte plausibel sein
+DECLARE @id int = (SELECT TOP 1 SalesOrderID FROM SalesLT.SalesOrderHeader ORDER BY SalesOrderID);
 
---SELECT TypId, Bez
---FROM Typ;
+SELECT * 
+FROM Xmas.fn_OrderSummary(@id);
 
-
---Aufgabe 2
---SELECT *
---FROM Bike
---WHERE fk_MarkeId = 3;
-
-
---Aufgabe 3
---SELECT Bez, Preis
---FROM Bike
---WHERE fk_MarkeId = 1 AND fk_TypId = 4;
-
-
---Aufgabe 4
---SELECT m.Bez AS Marke, b.Bez AS Bike, Preis
---FROM Bike b
---INNER JOIN Marke m ON m.MarkeId = b.fk_MarkeId;
-
-
---Aufgabe 5
---SELECT m.Bez AS Marke, b.Bez AS Bike, Preis
---FROM Bike b
---INNER JOIN Marke m ON m.MarkeId = b.fk_MarkeId
---ORDER BY Preis DESC;
-
-
---Aufgabe 6
---SELECT m.Bez AS Marke, b.Bez AS Bike, t.Bez AS Typ, Preis
---FROM Bike b
---INNER JOIN Marke m ON m.MarkeId = b.fk_MarkeId
---INNER JOIN Typ t ON t.TypId = b.fk_TypId
---ORDER BY m.Bez ASC, t.Bez ASC, b.Bez ASC;
-
-
---Aufgabe 7
---SELECT m.Bez AS Marke, b.Bez AS Bike, t.Bez AS Typ, Preis
---FROM Bike b
---INNER JOIN Marke m ON m.MarkeId = b.fk_MarkeId
---INNER JOIN Typ t ON t.TypId = b.fk_TypId
---WHERE fk_MarkeId = 4
---ORDER BY Preis DESC;
-
-
---Aufgabe 8
---SELECT t.Bez AS Typ, AVG(Preis) AS Durchschnittpreis
---FROM Bike
---INNER JOIN Typ t ON fk_TypId = t.TypId
---WHERE fk_TypId = 2
---GROUP BY t.Bez;
-
-
---Aufgabe 9
---SELECT m.Bez AS Marke, COUNT(*) AS Anzahl
---FROM Bike
---INNER JOIN Marke m ON fk_MarkeID = m.MarkeId
---GROUP BY m.Bez
---ORDER BY Anzahl DESC;
-
-
---Aufgabe 10
---SELECT t.Bez AS Typ
---FROM Typ t
---LEFT JOIN Bike b ON b.fk_TypId = t.TypId
---WHERE b.fk_TypId IS NULL;
-
-
---Aufgabe 11
---SELECT t.Bez, COUNT(*) AS Anzahl
---FROM Bike
---INNER JOIN Typ t ON fk_TypID = t.TypId
---GROUP BY t.Bez
---ORDER BY Anzahl ASC;
-
-
---Aufgabe 12
---SELECT m.Bez,AVG(Preis) AS Durchschnittpreis
---FROM Bike
---INNER JOIN Marke m ON fk_MarkeId = m.MarkeId
---WHERE fk_TypId = 4
---GROUP BY m.Bez
---ORDER BY Durchschnittpreis ASC;
-
-
---Aufgabe 13
---SELECT m.Bez AS Marke, MIN(Preis) AS Minimum, MAX(Preis) AS Maximum, SUM(Preis) AS Gesamt
---FROM Bike
---INNER JOIN Marke m ON fk_MarkeId = m.MarkeId
---GROUP BY m.Bez
---ORDER BY m.Bez ASC;
-
-
---Aufgabe 14
---SELECT m.Bez AS Marke, COUNT(*) AS Anzahl
---FROM Bike
---INNER JOIN Marke m ON fk_MarkeId = m.MarkeId
---WHERE fk_TypId = 2
---GROUP BY m.Bez
---ORDER BY Anzahl DESC;
-
-
---Aufgabe 15
---SELECT m.Bez AS Marke,
---Preis AS [VP inkl.],
---CAST(ROUND(Preis /107.7 * 100, 2) AS decimal (10,2)) AS [VP exkl.],
---CAST(ROUND(Preis /107.7 * 7.7, 2) AS decimal (10,2)) AS MWST
---From Bike
---INNER JOIN Marke m ON fk_MarkeId = m.MarkeId
-
-
---Aufgabe 16
---SELECT CAST(SUM((Preis) /100 * 15) AS decimal (10,2)) AS Gewinn
---FROM Bike
--- Ich komme auf einen anderen Gewinn als in der Aufgabe??
-
-
---Aufgabe 17
---SELECT m.Bez AS Marke, b.Bez AS Bike, t.Bez AS Typ, Preis AS [Normal-VP], Preis -200 AS [Aktion-VP]
---FROM Bike b
---INNER JOIN Marke m ON fk_MarkeId = m.MarkeId
---INNER JOIN Typ t ON fk_TypId = t.TypId
---WHERE Preis > 1000 AND fk_TypId != 2
---ORDER BY Marke, Bike ASC;
+-- Erwartung:
+-- 1 Zeile mit SalesOrderID = @id
+-- ItemCount > 0
+-- OrderValue > 0
+-- CustomerID nicht NULL
