@@ -1,0 +1,220 @@
+--*********************************************************
+-- Bikelager
+--*********************************************************
+
+-----------------------------------------------------------
+-- Datenbank erstellen
+-----------------------------------------------------------
+use master
+go
+drop database if exists BikeLager;
+go
+create database BikeLager;
+go
+use BikeLager;
+go
+
+-----------------------------------------------------------
+-- Tabllen erstellen
+-----------------------------------------------------------
+create table Typ(
+  TypId integer identity,
+  Bez varchar(20),
+  primary key (TypId)
+);
+
+create table Marke (
+  MarkeId integer identity,
+  Bez varchar(20),
+  primary key (MarkeId)
+);
+
+create table Bike (
+  BikeId integer identity,
+  Bez varchar(20),
+  Preis decimal(9, 2),
+  fk_TypId integer,
+  fk_MarkeId integer,
+  primary key (BikeId),
+  foreign key (fk_TypId) references Typ (TypId),
+  foreign key (fk_MarkeId) references Marke (MarkeId)
+);
+go
+
+-----------------------------------------------------------
+-- Inhalte einfügen
+-----------------------------------------------------------
+insert into Typ (Bez) values
+  ('Citybike'),
+  ('E-Bike'),
+  ('Kinderbike'),
+  ('Mountainbike'),
+  ('Rennvelo');
+
+insert into Marke (Bez) values
+  ('Scott'),
+  ('Trek'),
+  ('Flyer'),
+  ('Wheeler'),
+  ('Cube');
+
+insert into Bike (Bez, Preis) values
+  ('Travel SL', 1399),     /* Cube, Citybike */
+  ('Upstreet 5', 3899),    /* Flyer, E-Bike */
+  ('Uproc 3', 4599),       /* Flyer, E-Bike */
+  ('C 5.1', 3199),         /* Flyer, E-Bike */
+  ('Powerfly FS 7', 5399), /* Trek, E-Bike */
+  ('Fuel EX 9.8', 3999),   /* Trek, Mountainbike */
+  ('Scale 24', 499),       /* Scott, Kinderbike */
+  ('Scale 950', 1199),     /* Scott, Mountainbike */
+  ('XT EQT 24', 499),      /* Wheeler, Citybike */
+  ('Protron XT-10', 999);  /* Wheeler, Mountainbike */
+go
+
+-----------------------------------------------------------
+-- Typ und Marke pro Bike setzen
+-----------------------------------------------------------
+update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'Citybike'),      fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Cube'   )  where Bike.Bez = 'Travel SL';
+update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'E-Bike'),        fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Flyer'  )  where Bike.Bez = 'Upstreet 5';
+update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'E-Bike'),        fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Flyer'  )  where Bike.Bez = 'Uproc 3';
+update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'E-Bike'),        fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Flyer'  )  where Bike.Bez = 'C 5.1';
+update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'E-Bike'),        fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Trek'   )  where Bike.Bez = 'Powerfly FS 7';
+update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'Mountainbike'),  fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Trek'   )  where Bike.Bez = 'Fuel EX 9.8';
+update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'Kinderbike'),    fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Scott'  )  where Bike.Bez = 'Scale 24';
+update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'Mountainbike'),  fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Scott'  )  where Bike.Bez = 'Scale 950';
+update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'Citybike'),      fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Wheeler')  where Bike.Bez = 'XT EQT 24';
+update Bike set fk_TypId = (select TypId from Typ where Typ.Bez = 'Mountainbike'),  fk_MarkeId = (select MarkeId from Marke where Marke.Bez = 'Wheeler')  where Bike.Bez = 'Protron XT-10';
+
+
+--Aufgabe 1
+--SELECT MarkeId, Bez
+--FROM Marke;
+
+--SELECT BikeId, Bez, Preis, fk_TypId, fk_MarkeId
+--FROM Bike;
+
+--SELECT TypId, Bez
+--FROM Typ;
+
+
+--Aufgabe 2
+--SELECT *
+--FROM Bike
+--WHERE fk_MarkeId = 3;
+
+
+--Aufgabe 3
+--SELECT Bez, Preis
+--FROM Bike
+--WHERE fk_MarkeId = 1 AND fk_TypId = 4;
+
+
+--Aufgabe 4
+--SELECT m.Bez AS Marke, b.Bez AS Bike, Preis
+--FROM Bike b
+--INNER JOIN Marke m ON m.MarkeId = b.fk_MarkeId;
+
+
+--Aufgabe 5
+--SELECT m.Bez AS Marke, b.Bez AS Bike, Preis
+--FROM Bike b
+--INNER JOIN Marke m ON m.MarkeId = b.fk_MarkeId
+--ORDER BY Preis DESC;
+
+
+--Aufgabe 6
+--SELECT m.Bez AS Marke, b.Bez AS Bike, t.Bez AS Typ, Preis
+--FROM Bike b
+--INNER JOIN Marke m ON m.MarkeId = b.fk_MarkeId
+--INNER JOIN Typ t ON t.TypId = b.fk_TypId
+--ORDER BY m.Bez ASC, t.Bez ASC, b.Bez ASC;
+
+
+--Aufgabe 7
+--SELECT m.Bez AS Marke, b.Bez AS Bike, t.Bez AS Typ, Preis
+--FROM Bike b
+--INNER JOIN Marke m ON m.MarkeId = b.fk_MarkeId
+--INNER JOIN Typ t ON t.TypId = b.fk_TypId
+--WHERE fk_MarkeId = 4
+--ORDER BY Preis DESC;
+
+
+--Aufgabe 8
+--SELECT t.Bez AS Typ, AVG(Preis) AS Durchschnittpreis
+--FROM Bike
+--INNER JOIN Typ t ON fk_TypId = t.TypId
+--WHERE fk_TypId = 2
+--GROUP BY t.Bez;
+
+
+--Aufgabe 9
+--SELECT m.Bez AS Marke, COUNT(*) AS Anzahl
+--FROM Bike
+--INNER JOIN Marke m ON fk_MarkeID = m.MarkeId
+--GROUP BY m.Bez
+--ORDER BY Anzahl DESC;
+
+
+--Aufgabe 10
+--SELECT t.Bez AS Typ
+--FROM Typ t
+--LEFT JOIN Bike b ON b.fk_TypId = t.TypId
+--WHERE b.fk_TypId IS NULL;
+
+
+--Aufgabe 11
+--SELECT t.Bez, COUNT(*) AS Anzahl
+--FROM Bike
+--INNER JOIN Typ t ON fk_TypID = t.TypId
+--GROUP BY t.Bez
+--ORDER BY Anzahl ASC;
+
+
+--Aufgabe 12
+--SELECT m.Bez,AVG(Preis) AS Durchschnittpreis
+--FROM Bike
+--INNER JOIN Marke m ON fk_MarkeId = m.MarkeId
+--WHERE fk_TypId = 4
+--GROUP BY m.Bez
+--ORDER BY Durchschnittpreis ASC;
+
+
+--Aufgabe 13
+--SELECT m.Bez AS Marke, MIN(Preis) AS Minimum, MAX(Preis) AS Maximum, SUM(Preis) AS Gesamt
+--FROM Bike
+--INNER JOIN Marke m ON fk_MarkeId = m.MarkeId
+--GROUP BY m.Bez
+--ORDER BY m.Bez ASC;
+
+
+--Aufgabe 14
+--SELECT m.Bez AS Marke, COUNT(*) AS Anzahl
+--FROM Bike
+--INNER JOIN Marke m ON fk_MarkeId = m.MarkeId
+--WHERE fk_TypId = 2
+--GROUP BY m.Bez
+--ORDER BY Anzahl DESC;
+
+
+--Aufgabe 15
+--SELECT m.Bez AS Marke,
+--Preis AS [VP inkl.],
+--CAST(ROUND(Preis /107.7 * 100, 2) AS decimal (10,2)) AS [VP exkl.],
+--CAST(ROUND(Preis /107.7 * 7.7, 2) AS decimal (10,2)) AS MWST
+--From Bike
+--INNER JOIN Marke m ON fk_MarkeId = m.MarkeId
+
+
+--Aufgabe 16
+--SELECT CAST(SUM((Preis) /100 * 15) AS decimal (10,2)) AS Gewinn
+--FROM Bike
+-- Ich komme auf einen anderen Gewinn als in der Aufgabe??
+
+
+--Aufgabe 17
+--SELECT m.Bez AS Marke, b.Bez AS Bike, t.Bez AS Typ, Preis AS [Normal-VP], Preis -200 AS [Aktion-VP]
+--FROM Bike b
+--INNER JOIN Marke m ON fk_MarkeId = m.MarkeId
+--INNER JOIN Typ t ON fk_TypId = t.TypId
+--WHERE Preis > 1000 AND fk_TypId != 2
+--ORDER BY Marke, Bike ASC;
