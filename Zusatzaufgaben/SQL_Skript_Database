@@ -74,11 +74,20 @@ RETURNS TABLE
 AS
 RETURN
 (
-    SELECT h.SalesOrderID, h.OrderDate, COUNT(d.SalesOrderDetailID) AS ItemCount, SUM(d.LineTotal) AS OrderValue, h.CustomerID
+    SELECT
+        h.SalesOrderID,
+        h.OrderDate,
+        COUNT(d.SalesOrderDetailID) AS ItemCount,
+        SUM(d.LineTotal) AS OrderValue,
+        h.CustomerID
     FROM SalesLT.SalesOrderHeader h
-    JOIN SalesLT.SalesOrderDetail d ON h.SalesOrderID = d.SalesOrderID
+    JOIN SalesLT.SalesOrderDetail d
+        ON h.SalesOrderID = d.SalesOrderID
     WHERE h.SalesOrderID = @SalesOrderID
-    GROUP BY h.SalesOrderID, h.OrderDate, h.CustomerID
+    GROUP BY
+        h.SalesOrderID,
+        h.OrderDate,
+        h.CustomerID
 );
 GO
 
