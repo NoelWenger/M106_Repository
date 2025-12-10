@@ -107,3 +107,180 @@ FROM Xmas.fn_OrderSummary(@id);
 -- ItemCount > 0
 -- OrderValue > 0
 -- CustomerID nicht NULL
+
+
+
+--3--
+
+CREATE OR ALTER FUNCTION Xmas.fn_CalcXmasDiscount (@OrderValue money, @ItemCount int, @OrderDate date)
+RETURNS decimal(5,4)
+AS
+BEGIN
+DECLARE 
+@BaseDiscount decimal(5,4),
+@MinOrderValue money,
+@MinItems int,
+@MaxDiscount decimal(5,4);
+
+SELECT 
+@BaseDiscount = BaseDiscount,
+@MinOrderValue = MinOrderValue,
+@MinItems = MinItems,
+@MaxDiscount = MaxDiscount
+
+FROM Xmas.DiscountConfig;
+
+	IF Xmas.fn_IsXmasSeason(@OrderDate) = 0
+        RETURN 0;
+
+    IF @OrderValue >= @MinOrderValue
+    BEGIN
+        IF @BaseDiscount + 0.05 <= @MaxDiscount
+            SET @BaseDiscount = @BaseDiscount + 0.05;
+    END
+
+    IF @ItemCount >= @MinItems
+    BEGIN
+        IF @BaseDiscount + 0.03 <= @MaxDiscount
+            SET @BaseDiscount = @BaseDiscount + 0.03;
+    END
+
+    IF @OrderValue >= 2000
+    BEGIN
+        IF @BaseDiscount + 0.02 <= @MaxDiscount
+            SET @BaseDiscount = @BaseDiscount + 0.02;
+    END
+
+    IF @ItemCount >= 5
+    BEGIN
+        IF @BaseDiscount + 0.01 <= @MaxDiscount
+            SET @BaseDiscount = @BaseDiscount + 0.01;
+    END
+
+    RETURN @BaseDiscount;
+END;
+GO
+
+
+
+-- Test 1: keine Saison => 0
+SELECT Xmas.fn_CalcXmasDiscount(1500, 4, '2019-11-01') AS D0;
+-- Erwartet: 0.0000
+
+-- Test 2: Saison, nur BaseDiscount (OrderValue < 1000, Items < 3)
+SELECT Xmas.fn_CalcXmasDiscount(200, 1, '2019-12-10') AS Dbase;
+-- Erwartet: 0.0500
+
+-- Test 3: Saison, Base + OrderValue-Kriterium (>=1000)
+SELECT Xmas.fn_CalcXmasDiscount(1200, 1, '2019-12-10') AS Dorder;
+-- Erwartet: 0.1000 (= 5% + 5%)
+
+-- Test 4: Saison, Base + Items-Kriterium (>=3)
+SELECT Xmas.fn_CalcXmasDiscount(200, 3, '2019-12-10') AS Ditems;
+-- Erwartet: 0.0800 (= 5% + 3%)
+
+-- Test 5: Saison, alle Kriterien inkl. hohe Werte
+SELECT Xmas.fn_CalcXmasDiscount(2500, 6, '2019-12-10') AS Dall;
+-- Erwartet: 0.1600
+-- Rechnung: Base 5% +5% (>=1000) +3% (>=3 Items) +2% (>=2000) +1% (>=5 Items) = 16%
+
+-- Test 6: Deckelung (extrem hoch)
+SELECT Xmas.fn_CalcXmasDiscount(99999, 999, '2019-12-10') AS Dcap;
+-- Erwartet: <= 0.2500
+
+
+
+--4--
+
+CREATE OR ALTER FUNCTION Xmas.fn_XmasCheckout (@SalesOrderID INT)
+RETURNS @t TABLE
+(
+    SalesOrderID     INT,
+    OrderDate        DATE,
+    CustomerID       INT,
+    ItemCount        INT,
+    OrderValue       MONEY,
+    DiscountRate     DECIMAL(5,4),
+    DiscountAmount   MONEY,
+    FinalValue       MONEY,
+    GiftRecommendation NVARCHAR(50)
+)
+AS
+BEGIN
+DECLARE
+@OrderDate DATE,
+@CustomerID INT,
+@ItemCount INT,
+@OrderValue MONEY,
+@DiscountRate DECIMAL(5,4),
+@DiscountAmount MONEY,
+@FinalValue MONEY,
+@GiftRecommendation NVARCHAR(50);
+
+SELECT 
+@OrderDate = OrderDate,
+@CustomerID = CustomerID,
+@ItemCount = ItemCount,
+@OrderValue = OrderValue
+FROM Xmas.fn_OrderSummary(@SalesOrderID);
+
+SET @DiscountRate = Xmas.fn_CalcXmasDiscount(@OrderValue, @ItemCount, @OrderDate);
+SET @DiscountAmount = @OrderValue * @DiscountRate;
+SET @FinalValue = @OrderValue - @DiscountAmount;
+
+    IF @FinalValue >= 3000
+        SET @GiftRecommendation = 'Premium Bike Package';
+    ELSE IF @FinalValue >= 1500
+        SET @GiftRecommendation = 'Holiday Gear Set';
+    ELSE
+        SET @GiftRecommendation = 'Warm Socks Bundle';
+
+    INSERT INTO @t
+    (
+        SalesOrderID, OrderDate, CustomerID,
+        ItemCount, OrderValue, DiscountRate,
+        DiscountAmount, FinalValue, GiftRecommendation
+    )
+    VALUES
+    (
+        @SalesOrderID, @OrderDate, @CustomerID,
+        @ItemCount, @OrderValue, @DiscountRate,
+        @DiscountAmount, @FinalValue, @GiftRecommendation
+    );
+
+    RETURN;
+END;
+GO
+
+
+
+-- Nimm eine echte Bestellung IN DER WEIHNACHTSSAISON (01.12.–24.12.)
+DECLARE @id int =
+(
+    SELECT TOP 1 SalesOrderID
+    FROM SalesLT.SalesOrderHeader
+    WHERE MONTH(OrderDate) = 12
+      AND DAY(OrderDate) BETWEEN 1 AND 24
+    ORDER BY SalesOrderID DESC
+);
+
+SELECT *
+FROM Xmas.fn_XmasCheckout(@id);
+
+-- Erwartung:
+-- 1 Zeile
+-- DiscountRate > 0 und <= 0.25
+-- FinalValue = OrderValue - DiscountAmount
+-- GiftRecommendation ist einer der 3 Texte
+
+--5--
+
+SELECT TOP 20 *
+FROM SalesLT.SalesOrderHeader h
+CROSS APPLY Xmas.fn_XmasCheckout(h.SalesOrderID) c
+WHERE Xmas.fn_IsXmasSeason(h.OrderDate) = 1
+ORDER BY c.FinalValue DESC;
+
+-- Erwartung:
+-- Ergebnisliste mit sinnvollen Rabatten
+-- Nur Dezember-Daten bis 24.12.
